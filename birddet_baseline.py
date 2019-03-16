@@ -1,23 +1,28 @@
 # DCASE 2018 - Bird Audio Detection challenge (Task 3)
 
-# This code is a basic implementation of bird audio detector (based on baseline code's architecture)
+# This code is a basic implementation of bird audio detector
+#(based on baseline code's architecture)
 
 import h5py
 import csv
 import numpy as np
 import random
 import PIL.Image
-import matplotlib.pyplot as plt
+import logging
+#import matplotlib.pyplot as plt
 from HTK import HTKFile
 
 from sklearn.metrics import roc_auc_score, roc_curve, auc
 
 import keras
-from keras.layers import Conv2D, Dropout, MaxPooling2D, Dense, GlobalAveragePooling2D, Flatten, BatchNormalization, AveragePooling2D
+from keras.layers import (Conv2D, Dropout, MaxPooling2D, Dense,
+                          GlobalAveragePooling2D, Flatten,
+                          BatchNormalization, AveragePooling2D)
 from keras.models import Sequential, load_model
 from keras.layers.advanced_activations import LeakyReLU
 from keras.preprocessing.image import ImageDataGenerator
-from keras.losses import binary_crossentropy, mean_squared_error, mean_absolute_error
+from keras.losses import (binary_crossentropy, mean_squared_error,
+                          mean_absolute_error)
 from keras.regularizers import l2
 
 import my_callbacks
@@ -26,11 +31,25 @@ from keras.callbacks import ReduceLROnPlateau
 from keras.callbacks import CSVLogger
 from keras.callbacks import EarlyStopping
 
+
+# Logging Config
+
+LOGFILE = 'logs/syslog.log'
+logging.basicConfig(filename=LOGFILE,
+                        filemode='a',
+                        format='%(asctime)s,%(msecs)d %(name)s '
+                        '%(levelname)s %(message)s',
+                        datefmt='%H:%M:%S',
+                        level=logging.DEBUG)
+
+logger = logging.getLogger('Baseline')
+logger.info('---------------------------- Program ---------------------------')
 ################################################
 #
 #   Global parameters
 #
 ################################################
+logger.info('Reading all parameters')
 
 #checking mfc features
 SPECTPATH = 'workingfiles/features_baseline/'
@@ -38,7 +57,7 @@ LABELPATH = 'labels/'
 FILELIST = 'workingfiles/filelists/'
 
 RESULTPATH = 'trained_model/baseline/'
-SUBMISSIONFILE = 'DCASE_submission_baseline.csv'
+SUBMISSIONFILE = 'predictions.csv'
 PREDICTIONPATH = 'prediction/'
 dataset = ['BirdVox-DCASE-20k.csv', 'ff1010bird.csv', 'warblrb10k.csv']
 
@@ -46,8 +65,8 @@ logfile_name = RESULTPATH + 'logfile.log'
 checkpoint_model_name = RESULTPATH + 'ckpt.h5'
 final_model_name = RESULTPATH + 'flmdl.h5'
 
-BATCH_SIZE = 16
-EPOCH_SIZE = 60
+BATCH_SIZE = 32
+EPOCH_SIZE = 100
 AUGMENT_SIZE = 1
 with_augmentation = False
 domain_adaptation = False
@@ -65,15 +84,20 @@ transform_for_poland = np.zeros((80,80))
 
 # Callbacks for logging during epochs
 reduceLR = ReduceLROnPlateau(factor=0.2, patience=5, min_lr=0.00001)
-checkPoint = ModelCheckpoint(filepath = checkpoint_model_name, monitor= 'val_acc', mode = 'max', save_best_only=True)
+checkPoint = ModelCheckpoint(filepath = checkpoint_model_name,
+                             monitor= 'val_acc', mode = 'max',
+                             save_best_only=True)
 csvLogger = CSVLogger(logfile_name, separator=',', append=False)
+
+
+
 
 ################################################
 #
 #   Data set selection
 #
 ################################################
-
+logger.info('Data set selection')
 # Parameters in this section can be adjusted to select different data sets to train, test, and validate on.
 
 # Keys by which we will access properties of a data set. The values assigned here are ultimately meaningless.
@@ -113,11 +137,17 @@ d_fold3 = {k_VAL_FILE: 'test_BW', k_TEST_FILE: 'val_3', k_TRAIN_FILE: 'train_BW'
 d_all3 = {k_VAL_FILE: 'val_BWF', k_TEST_FILE:'test', k_TRAIN_FILE: 'train_BWF',
            k_VAL_SIZE: 1785.0, k_TEST_SIZE: 12620.0, k_TRAIN_SIZE: 35960.0,
            k_CLASS_WEIGHT: {0: 0.50, 1: 0.50}}
+d_test = {k_VAL_FILE: 'val_test', k_TEST_FILE:'test_test', k_TRAIN_FILE: 'train_test',
+           k_VAL_SIZE: 20.0, k_TEST_SIZE: 20.0, k_TRAIN_SIZE: 45.0,
+           k_CLASS_WEIGHT: {0: 0.50, 1: 0.50}}
 # Declare the training, validation, and testing sets here using the dictionaries defined above.
 # Set these variables to change the data set.
-training_set = d_all3
-validation_set = d_all3
-test_set = d_all3
+training_set = d_birdVox
+validation_set = d_birdVox
+test_set = d_birdVox
+
+logger.info(f"Dataset -- Training: {training_set}, Validation:"
+            "{validation_set}, Test: {test_set}")
 
 # Grab the file lists and sizes from the corresponding data sets.
 train_filelist = FILELIST + training_set[k_TRAIN_FILE]
@@ -289,6 +319,7 @@ def dataval_generator(filelistpath, batch_size=32, shuffle=False):
             hf.close()
 
             # normalizing intensity values of spectrogram from [-15.0966 to 2.25745] to [0 to 1] range
+            #TODO:Normalize
             imagedata = (imagedata + 15.0966)/(15.0966 + 2.25745)
 
         elif features == 'mfc':
@@ -301,7 +332,6 @@ def dataval_generator(filelistpath, batch_size=32, shuffle=False):
             imagedata = imagedata/17.0
 
         # processing files with shapes other than expected shape in warblr dataset
-
         if imagedata.shape[0] != expected_shape[0]:
             old_imagedata = imagedata
             imagedata = np.zeros(expected_shape)
@@ -357,7 +387,6 @@ def dataval_generator(filelistpath, batch_size=32, shuffle=False):
                 imagedata = (imagedata + 10.8) / (10.8 + 7.40)
                 # -10.796116--max:7.4045897
         imagedata = np.reshape(imagedata, (1, imagedata.shape[0], imagedata.shape[1], 1))
-
         spect_batch[batch_index, :, :, :] = imagedata
         if model_operation != 'test':
             label_batch[batch_index, :] = labels_dict[file_id]
@@ -378,7 +407,7 @@ def datatest_generator(filelistpath, batch_size=32, shuffle=False):
     filenames = filelist.readlines()
     filelist.close()
 
-    dataset = (['Chernobyl.csv', 'PolandNFC.csv', 'warblrb10k-eval.csv'])
+    # dataset = (['Chernobyl.csv', 'PolandNFC.csv', 'warblrb10k-eval.csv'])
 
     labels_dict = {}
     for n in range(len(dataset)):
@@ -406,7 +435,7 @@ def datatest_generator(filelistpath, batch_size=32, shuffle=False):
             #file_prefix = file_id[:file_id.rfind("/")+1]
             #file_suffix = file_id[file_id.rfind("/")+1:]
             #hf = h5py.File(SPECTPATH + file_prefix + 'enhanced_'+ file_suffix + '.h5')
-            hf = h5py.File(SPECTPATH + file_id[:-4] + '.h5', 'r')#[:-4]for evaluation dataset
+            hf = h5py.File(SPECTPATH + file_id + '.h5', 'r')#[:-4]for evaluation dataset
             imagedata = hf.get('features')
             imagedata = np.array(imagedata)
             hf.close()
@@ -424,7 +453,6 @@ def datatest_generator(filelistpath, batch_size=32, shuffle=False):
             imagedata = imagedata/17.0
 
         # processing files with shapes other than expected shape in warblr dataset
-
         if imagedata.shape[0] != expected_shape[0]:
             old_imagedata = imagedata
             imagedata = np.zeros(expected_shape)
@@ -530,30 +558,33 @@ def testdata(filelistpath, test_size):
 #
 ################################################
 
-#reading birdvox transform
-htf = h5py.File(f_TRANSFORM_SRC_BIRDVOX, 'r')
-transform_for_birdvox = htf.get('cov')
-transform_for_birdvox = np.array(transform_for_birdvox)
-htf.close()
+if domain_adaptation == True:
+    logger.info('Executing Adaptation')
+    #reading birdvox transform
+    htf = h5py.File(f_TRANSFORM_SRC_BIRDVOX, 'r')
+    transform_for_birdvox = htf.get('cov')
+    transform_for_birdvox = np.array(transform_for_birdvox)
+    htf.close()
 
-#reading ff1010bird transform
-htf = h5py.File(f_TRANSFORM_SRC_FF1010BIRD, 'r')
-transform_for_ff1010bird = htf.get('cov')
-transform_for_ff1010bird = np.array(transform_for_ff1010bird)
-htf.close()
+    #reading ff1010bird transform
+    htf = h5py.File(f_TRANSFORM_SRC_FF1010BIRD, 'r')
+    transform_for_ff1010bird = htf.get('cov')
+    transform_for_ff1010bird = np.array(transform_for_ff1010bird)
+    htf.close()
 
-#reading chernobyl transform
-htf = h5py.File(f_TRANSFORM_SRC_CHERNOBYL, 'r')
-transform_for_chern = htf.get('cov')
-transform_for_chern = np.array(transform_for_chern)
-htf.close()
+    #reading chernobyl transform
+    htf = h5py.File(f_TRANSFORM_SRC_CHERNOBYL, 'r')
+    transform_for_chern = htf.get('cov')
+    transform_for_chern = np.array(transform_for_chern)
+    htf.close()
 
-#reading polandnfc transform
-htf = h5py.File(f_TRANSFORM_SRC_POLANDNFC, 'r')
-transform_for_poland = htf.get('cov')
-transform_for_poland = np.array(transform_for_poland)
-htf.close()
+    #reading polandnfc transform
+    htf = h5py.File(f_TRANSFORM_SRC_POLANDNFC, 'r')
+    transform_for_poland = htf.get('cov')
+    transform_for_poland = np.array(transform_for_poland)
+    htf.close()
 
+logger.info('Genereting data for Tranning')
 if(with_augmentation == True):
     train_generator = data_generator(train_filelist, BATCH_SIZE, True)
 else:
@@ -577,6 +608,7 @@ datagen = ImageDataGenerator(
 #
 ################################################
 if model_operation == 'new':
+    logger.info('Creating new Sequential Mode')
     model = Sequential()
     # augmentation generator
     # code from baseline : "augment:Rotation|augment:Shift(low=-1,high=1,axis=3)"
@@ -625,12 +657,14 @@ if model_operation == 'new' or model_operation == 'load':
     histories = my_callbacks.Histories()
 
 model.summary()
+logger.info(model.summary())
 
 my_steps = np.floor(TRAIN_SIZE*AUGMENT_SIZE / BATCH_SIZE)
 my_val_steps = np.floor(VAL_SIZE / BATCH_SIZE)
 my_test_steps = np.ceil(TEST_SIZE / BATCH_SIZE)
 
 if model_operation == 'new' or model_operation == 'load':
+    logger.info('Model fitting')
     history = model.fit_generator(
         train_generator,
         steps_per_epoch=my_steps,
@@ -642,16 +676,15 @@ if model_operation == 'new' or model_operation == 'load':
         verbose=True)
 
     model.save(final_model_name)
-    print('Training done. The results are in : '+RESULTPATH)
+    logger.info('Training done. The results are in :\n'+RESULTPATH)
 
 # generating prediction values for computing ROC_AUC score
 # whether model_operation is 'new', 'load' or 'test'
-
+logger.info('Genereting Predictions')
 pred_generator = datatest_generator(test_filelist, BATCH_SIZE, False)
 y_pred = model.predict_generator(
     pred_generator,
     steps=my_test_steps)
-print(y_pred)
 
 # saving predictions in csv file
 
@@ -659,12 +692,15 @@ testfile = open(test_filelist, 'r')
 testfilenames = testfile.readlines()
 testfile.close()
 
+HEADER = ['itemid','prediction']
+
 fidwr = open(PREDICTIONPATH+SUBMISSIONFILE, 'wt')
 try:
     writer = csv.writer(fidwr)
+    writer.writerow(HEADER)
     for i in range(len(testfilenames)):
         strf = testfilenames[i]
-        writer.writerow((strf[strf.find('/')+1:-9], str(float(y_pred[i]))))
+        writer.writerow((strf[strf.find('/')+1:-5], float(y_pred[i])))
 finally:
     fidwr.close()
 
