@@ -6,7 +6,8 @@ import matplotlib.pyplot as plt
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('input_file', help='Path from file to plot')
+    parser.add_argument('input_file', help='Path from file to plot. Format:'
+                        'epoch,acc,loss,lr,val_acc,val_loss')
     parser.add_argument('output_name', help='Name of the plot')
     args = parser.parse_args()
 
@@ -56,10 +57,5 @@ def main():
     plt.show()
 
 
-
-
-
 if __name__ == "__main__":
     main()
-
-
