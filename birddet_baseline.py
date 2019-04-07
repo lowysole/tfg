@@ -210,6 +210,8 @@ def data_generator(filelistpath, batch_size=16, shuffle=False):
             hf.close()
             # normalizing intensity values of spectrogram from [-15.0966 to 2.25745] to [0 to 1] range
             imagedata = (imagedata + 15.0966)/(15.0966 + 2.25745)
+        elif features == 'npy':
+            imagedata = np.load(SPECTPATH + file_id + '.npy')
         elif features == 'mfc':
             htk_reader = HTKFile()
             htk_reader.load(SPECTPATH + file_id[:-4] + '.mfc')
@@ -321,7 +323,8 @@ def dataval_generator(filelistpath, batch_size=32, shuffle=False):
             # normalizing intensity values of spectrogram from [-15.0966 to 2.25745] to [0 to 1] range
             #TODO:Normalize
             imagedata = (imagedata + 15.0966)/(15.0966 + 2.25745)
-
+        elif features == 'npy':
+            imagedata = np.load(SPECTPATH + file_id + '.npy')
         elif features == 'mfc':
             htk_reader = HTKFile()
             #file_prefix = file_id[:file_id.rfind("/")+1]
@@ -442,7 +445,8 @@ def datatest_generator(filelistpath, batch_size=32, shuffle=False):
 
             # normalizing intensity values of spectrogram from [-15.0966 to 2.25745] to [0 to 1] range
             imagedata = (imagedata + 15.0966)/(15.0966 + 2.25745)
-
+        elif features == 'npy':
+            imagedata = np.load(SPECTPATH + file_id + '.npy')
         elif features == 'mfc':
             htk_reader = HTKFile()
             #file_prefix = file_id[:file_id.rfind("/")+1]
