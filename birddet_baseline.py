@@ -77,10 +77,6 @@ shape = (700, 80)
 expected_shape = (700, 80)
 spect = np.zeros(shape)
 label = np.zeros(1)
-transform_for_birdvox = np.zeros((80,80))
-transform_for_ff1010bird = np.zeros((80,80))
-transform_for_chern = np.zeros((80,80))
-transform_for_poland = np.zeros((80,80))
 
 # Callbacks for logging during epochs
 reduceLR = ReduceLROnPlateau(factor=0.2, patience=5, min_lr=0.00001)
@@ -109,11 +105,6 @@ k_VAL_SIZE = 'validate_size'
 k_TEST_SIZE = 'test_size'
 k_TRAIN_SIZE = 'train_size'
 k_CLASS_WEIGHT = 'class_weight'
-#k_TRANSFORM_MATRIX = 'transform_matrix'
-f_TRANSFORM_SRC_BIRDVOX= 'adaptation_files/transform_source_700_BirdVox-DCASE-20k.h5'
-f_TRANSFORM_SRC_FF1010BIRD='adaptation_files/transform_source_700_ff1010bird.h5'
-f_TRANSFORM_SRC_POLANDNFC='adaptation_files/transform_source_700_PolandNFC.h5'
-f_TRANSFORM_SRC_CHERNOBYL='adaptation_files/transform_source_700_Chernobyl.h5'
 
 # Declare the dictionaries to represent the data sets
 d_birdVox = {k_VAL_FILE: 'val_B', k_TEST_FILE: 'test_B', k_TRAIN_FILE: 'train_B',
@@ -177,7 +168,7 @@ def data_generator(filelistpath, batch_size=16, shuffle=False):
     if shuffle==True:
         random.shuffle(filenames)
 
-    dataset = ['BirdVox-DCASE-20k.csv', 'ff1010bird.csv', 'warblrb10k.csv']
+    # dataset = ['BirdVox-DCASE-20k.csv', 'ff1010bird.csv', 'warblrb10k.csv']
 
     labels_dict = {}
     for n in range(len(dataset)):
@@ -367,28 +358,6 @@ def dataval_generator(filelistpath, batch_size=32, shuffle=False):
                         imagedata[range(0, expected_shape[0]), :] = np.sum([imagedata, old_imagedata[range(index * expected_shape[0], (index + 1) * expected_shape[0])]],axis=0) / count
                         imagedata[range(0, remaining_diff), :] = np.mean(np.array([old_imagedata[range(old_imagedata.shape[0] - remaining_diff, old_imagedata.shape[0]), :],imagedata[range(0, remaining_diff), :]]), axis=0)
 
-        if domain_adaptation == True:
-            filedataset = file_id[:file_id.rfind('/')]
-            #print('Domain adaptation is supposed to be off')
-            if filedataset == 'BirdVox-DCASE-20k':
-                imagedata = np.matmul(imagedata, transform_for_birdvox)
-                imagedata = (imagedata - 3.4) / (6.95 - 3.4)
-                #min: 3.4020782 - -max:6.9419036
-
-            elif filedataset == 'ff1010bird':
-                imagedata = np.matmul(imagedata, transform_for_ff1010bird)
-                imagedata = (imagedata - 1.4) / (7.37 - 1.4)
-                # min:1.4374458--max:7.363845
-
-            elif filedataset == 'Chernobyl':
-                imagedata = np.matmul(imagedata, transform_for_chern)
-                imagedata = (imagedata - 3.75) / (7 - 3.75)
-                #3.7511292--max:7.00125
-
-            elif filedataset == 'PolandNFC':
-                imagedata = np.matmul(imagedata, transform_for_poland)
-                imagedata = (imagedata + 10.8) / (10.8 + 7.40)
-                # -10.796116--max:7.4045897
         imagedata = np.reshape(imagedata, (1, imagedata.shape[0], imagedata.shape[1], 1))
         spect_batch[batch_index, :, :, :] = imagedata
         if model_operation != 'test':
@@ -489,28 +458,6 @@ def datatest_generator(filelistpath, batch_size=32, shuffle=False):
                         imagedata[range(0, expected_shape[0]), :] = np.sum([imagedata, old_imagedata[range(index * expected_shape[0], (index + 1) * expected_shape[0])]],axis=0) / count
                         imagedata[range(0, remaining_diff), :] = np.mean(np.array([old_imagedata[range(old_imagedata.shape[0] - remaining_diff, old_imagedata.shape[0]), :],imagedata[range(0, remaining_diff), :]]), axis=0)
 
-        if domain_adaptation == True:
-            filedataset = file_id[:file_id.rfind('/')]
-            #print('Domain adaptation is supposed to be off')
-            if filedataset == 'BirdVox-DCASE-20k':
-                imagedata = np.matmul(imagedata, transform_for_birdvox)
-                imagedata = (imagedata - 3.4) / (6.95 - 3.4)
-                #min: 3.4020782 - -max:6.9419036
-
-            elif filedataset == 'ff1010bird':
-                imagedata = np.matmul(imagedata, transform_for_ff1010bird)
-                imagedata = (imagedata - 1.4) / (7.37 - 1.4)
-                # min:1.4374458--max:7.363845
-
-            elif filedataset == 'Chernobyl':
-                imagedata = np.matmul(imagedata, transform_for_chern)
-                imagedata = (imagedata - 3.75) / (7 - 3.75)
-                #3.7511292--max:7.00125
-
-            elif filedataset == 'PolandNFC':
-                imagedata = np.matmul(imagedata, transform_for_poland)
-                imagedata = (imagedata + 10.8) / (10.8 + 7.40)
-                # -10.796116--max:7.4045897
         imagedata = np.reshape(imagedata, (1, imagedata.shape[0], imagedata.shape[1], 1))
 
         spect_batch[batch_index, :, :, :] = imagedata
@@ -557,38 +504,9 @@ def testdata(filelistpath, test_size):
     return outputs
 
 ################################################
-#
-#   Reading covariance transforms
-#
-################################################
-
-if domain_adaptation == True:
-    logger.info('Executing Adaptation')
-    #reading birdvox transform
-    htf = h5py.File(f_TRANSFORM_SRC_BIRDVOX, 'r')
-    transform_for_birdvox = htf.get('cov')
-    transform_for_birdvox = np.array(transform_for_birdvox)
-    htf.close()
-
-    #reading ff1010bird transform
-    htf = h5py.File(f_TRANSFORM_SRC_FF1010BIRD, 'r')
-    transform_for_ff1010bird = htf.get('cov')
-    transform_for_ff1010bird = np.array(transform_for_ff1010bird)
-    htf.close()
-
-    #reading chernobyl transform
-    htf = h5py.File(f_TRANSFORM_SRC_CHERNOBYL, 'r')
-    transform_for_chern = htf.get('cov')
-    transform_for_chern = np.array(transform_for_chern)
-    htf.close()
-
-    #reading polandnfc transform
-    htf = h5py.File(f_TRANSFORM_SRC_POLANDNFC, 'r')
-    transform_for_poland = htf.get('cov')
-    transform_for_poland = np.array(transform_for_poland)
-    htf.close()
 
 logger.info('Genereting data for Tranning')
+
 if(with_augmentation == True):
     train_generator = data_generator(train_filelist, BATCH_SIZE, True)
 else:
@@ -707,4 +625,3 @@ try:
         writer.writerow((strf[strf.find('/')+1:-5], float(y_pred[i])))
 finally:
     fidwr.close()
-
