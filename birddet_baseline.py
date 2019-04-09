@@ -69,12 +69,12 @@ BATCH_SIZE = 32
 EPOCH_SIZE = 100
 AUGMENT_SIZE = 1
 with_augmentation = False
-domain_adaptation = False
-features='h5'
+features='npy'
 model_operation = 'new'
 # model_operations : 'new', 'load', 'test'
 shape = (700, 80)
 expected_shape = (700, 80)
+input_cnn_shape = (700, 80, 1)
 spect = np.zeros(shape)
 label = np.zeros(1)
 
@@ -538,7 +538,7 @@ if model_operation == 'new':
     #preprocessing_function
 
     # convolution layers
-    model.add(Conv2D(16, (3, 3), padding='valid', input_shape=(700, 80, 1), ))  # low: try different kernel_initializer
+    model.add(Conv2D(16, (3, 3), padding='valid', input_shape=input_cnn_shape, ))  # low: try different kernel_initializer
     model.add(BatchNormalization())  # explore order of Batchnorm and activation
     model.add(LeakyReLU(alpha=.001))
     model.add(MaxPooling2D(pool_size=(3, 3)))  # experiment with using smaller pooling along frequency axis

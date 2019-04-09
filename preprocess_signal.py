@@ -5,12 +5,27 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
+# ---- OPTIONS TAMPLATE ----- #
+#    dic = {'FS': 22050,
+#           'N_FFT': 2048,
+#           'WIN': 'hamming',
+#           'HOP_t': 0.014,
+#           'WIN_t': 0.046,
+#           # MEL
+#           'N_MEL': 80,
+#           'F_MIN': 50,
+#           'F_MAX': 12000,
+#           'expected_len': 700,
+#           }
+# --------------------------- #
+
 
 def define_param(option):
-    dic = {'N_FFT': 2048,
+    dic = {'FS': 22050,
+           'N_FFT': 4096,
            'WIN': 'hamming',
-           'HOP_L': 0.014,
-           'WIN_L': 0.046,
+           'HOP_t': 0.014,
+           'WIN_t': 0.046,
            # MEL
            'N_MEL': 80,
            'F_MIN': 50,
@@ -20,21 +35,28 @@ def define_param(option):
     if option == 'baseline':
         return dic
     elif option == 'temporal':
+        dic['WIN_t'] = 0.012
+        dic['HOP_t'] = 0.006
+        dic['expected_len'] = 1669
         return dic
     elif option == 'frequential':
+        dic['WIN_t'] = 0.032
+        dic['HOP_t'] = 0.016
+        dic['N_MEL'] = 160
+        dic['expected_len'] = 624
         return dic
 
 
 def compute_spectrogram(path, options):
     x, fs = librosa.load(path)
     # Resample
-    if fs != 22050:
-        x = librosa.resample(x, fs, 22050)
-        fs = 22050
+    if fs != options['FS']:
+        x = librosa.resample(x, fs, options['FS'])
+        fs = options['FS']
     # Compute sfft
     sfft_spec = librosa.core.stft(x, n_fft=options['N_FFT'],
-                                  hop_length=int(options['HOP_L']*fs),
-                                  win_length=int(options['WIN_L']*fs),
+                                  hop_length=int(options['HOP_t']*fs),
+                                  win_length=int(options['WIN_t']*fs),
                                   window=options['WIN'])
     # Log Spectogram
     lfeat = librosa.core.power_to_db(np.abs(sfft_spec)**2)
@@ -51,14 +73,14 @@ def compute_spectrogram(path, options):
 def compute_spectrogram_mel(path, options):
     x, fs = librosa.load(path)
     # Resample
-    if fs != 22050:
-        x = librosa.resample(x, fs, 22050)
-        fs = 22050
+    if fs != options['FS']:
+        x = librosa.resample(x, fs, options['FS'])
+        fs = options['FS']
     # Compute sfft
     # N_FFT = int(len(x) / 2)
     sfft_spec = librosa.core.stft(x, n_fft=options['N_FFT'],
-                                  hop_length=int(options['HOP_L']*fs),
-                                  win_length=int(options['WIN_L']*fs),
+                                  hop_length=int(options['HOP_t']*fs),
+                                  win_length=int(options['WIN_t']*fs),
                                   window=options['WIN'])
     # Create Mel filter
     mel_filter = librosa.filters.mel(fs, n_fft=options['N_FFT'],
@@ -85,7 +107,7 @@ def save_spectogram(data, path, name):
 
 def plot_spectogram(data, options):
     plt.figure(figsize=(12, 8))
-    librosa.display.specshow(data, fmax=options['F_MAX'], x_axis='time')
+    librosa.display.specshow(data, x_axis='time')
     plt.colorbar(format='%+2.0f dB')
     plt.title('Spectrogram')
     plt.tight_layout()
@@ -93,11 +115,13 @@ def plot_spectogram(data, options):
 
 def plot_spectogram_mel(data, options):
     plt.figure(figsize=(12, 8))
-    librosa.display.specshow(data, y_axis='mel', fmax=options['F_MAX'],
+    librosa.display.specshow(data, sr=options['FS'],
+                             hop_length=options['HOP_t']*options['FS'],
+                             fmin=options['F_MIN'], fmax=options['F_MAX'],
                              x_axis='time')
     plt.colorbar(format='%+2.0f dB')
     plt.title('Spectrogram')
-    plt.tight_layout()
+    # plt.tight_layout()
     plt.show()
 
 
@@ -121,7 +145,8 @@ if __name__ == '__main__':
             features = compute_spectrogram_mel(file_path, options)
 
         if len(features) > options['expected_len']:
-            features = np.resize(features, (700, 80))
+            features = np.resize(features, (options['expected_len'],
+                                            options['N_MEL']))
         # elif len(features) < expected_len:
         # TODO: Complete
         save_spectogram(features, args.output_file, wave)
