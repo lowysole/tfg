@@ -77,6 +77,9 @@ expected_shape = (700, 80)
 input_cnn_shape = (700, 80, 1)
 spect = np.zeros(shape)
 label = np.zeros(1)
+# Normalization
+max_value = 0
+min_value = 0
 
 # Callbacks for logging during epochs
 reduceLR = ReduceLROnPlateau(factor=0.2, patience=5, min_lr=0.00001)
@@ -203,6 +206,8 @@ def data_generator(filelistpath, batch_size=16, shuffle=False):
             imagedata = (imagedata + 15.0966)/(15.0966 + 2.25745)
         elif features == 'npy':
             imagedata = np.load(SPECTPATH + file_id + '.npy')
+            if max_value != 0 and min_value != 0:
+                imagedata = (imagedata - min_value)/(max_value - min_value)
         elif features == 'mfc':
             htk_reader = HTKFile()
             htk_reader.load(SPECTPATH + file_id[:-4] + '.mfc')
@@ -316,6 +321,8 @@ def dataval_generator(filelistpath, batch_size=32, shuffle=False):
             imagedata = (imagedata + 15.0966)/(15.0966 + 2.25745)
         elif features == 'npy':
             imagedata = np.load(SPECTPATH + file_id + '.npy')
+            if max_value != 0 and min_value != 0:
+                imagedata = (imagedata - min_value)/(max_value - min_value)
         elif features == 'mfc':
             htk_reader = HTKFile()
             #file_prefix = file_id[:file_id.rfind("/")+1]
@@ -416,6 +423,8 @@ def datatest_generator(filelistpath, batch_size=32, shuffle=False):
             imagedata = (imagedata + 15.0966)/(15.0966 + 2.25745)
         elif features == 'npy':
             imagedata = np.load(SPECTPATH + file_id + '.npy')
+            if max_value != 0 and min_value != 0:
+                imagedata = (imagedata - min_value)/(max_value - min_value)
         elif features == 'mfc':
             htk_reader = HTKFile()
             #file_prefix = file_id[:file_id.rfind("/")+1]

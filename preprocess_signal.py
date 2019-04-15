@@ -62,12 +62,8 @@ def compute_spectrogram(path, options):
     lfeat = librosa.core.power_to_db(np.abs(sfft_spec)**2)
     # Convert to an array
     lfeat = np.array(lfeat)
-    # Normalize array
-    max_value = np.amax(lfeat)
-    min_value = np.amin(lfeat)
-    lfeat_n = (lfeat - min_value)/(max_value - min_value)
 
-    return lfeat_n.transpose()
+    return lfeat.transpose()
 
 
 def compute_spectrogram_mel(path, options):
@@ -93,12 +89,17 @@ def compute_spectrogram_mel(path, options):
     lmel_feat = librosa.core.power_to_db(np.abs(mel_feat)**2)
     # Convert to an array
     lmel_feat = np.array(lmel_feat)
-    # Normalize array
-    max_value = np.amax(lmel_feat)
-    min_value = np.amin(lmel_feat)
-    lmel_feat_n = (lmel_feat - min_value)/(max_value - min_value)
 
-    return lmel_feat_n.transpose()
+    return lmel_feat.transpose()
+
+
+def normalization(data):
+    # Normalize array
+    max_value = np.amax(data)
+    min_value = np.amin(data)
+    norm_data = (data - min_value)/(max_value - min_value)
+
+    return norm_data
 
 
 def save_spectogram(data, path, name):
@@ -134,15 +135,28 @@ if __name__ == '__main__':
     parser.add_argument('--process', choices=['baseline', 'temporal',
                                               'frequential'],
                         help='Choose type of process signal')
+    parser.add_argument('--norm', choices=['none', 'individual', 'full'],
+                        help='Choose the normalization of the signal')
     args = parser.parse_args()
 
     options = define_param(args.process)
+    max_value = 0
+    min_value = 0
     for wave in os.listdir(args.input_file):
         file_path = os.path.join(args.input_file, wave)
         if args.type == 'normal':
             features = compute_spectrogram(file_path, options)
         elif args.type == 'mel':
             features = compute_spectrogram_mel(file_path, options)
+        # Normalization
+        if args.norm == 'individual':
+            features = normalization(features)
+
+        elif args.norm == 'full':
+            if np.amax(features) > max_value:
+                max_value = np.amax(features)
+            if np.amin(features) < min_value:
+                min_value = np.amin(features)
 
         if len(features) > options['expected_len']:
             features = np.resize(features, (options['expected_len'],
@@ -150,3 +164,6 @@ if __name__ == '__main__':
         # elif len(features) < expected_len:
         # TODO: Complete
         save_spectogram(features, args.output_file, wave)
+
+    print('Max Value: {}'.format(max_value))
+    print('Min Value: {}'.format(min_value))
