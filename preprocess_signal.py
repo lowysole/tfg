@@ -165,5 +165,5 @@ if __name__ == '__main__':
         # TODO: Complete
         save_spectogram(features, args.output_file, wave)
 
-    print('Max Value: ' + max_value)
-    print('Min Value: ' + min_value)
+    print('Max Value: {}'.format(max_value))
+    print('Min Value: {}'.format(min_value))
