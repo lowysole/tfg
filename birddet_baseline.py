@@ -52,29 +52,30 @@ logger.info('---------------------------- Program ---------------------------')
 logger.info('Reading all parameters')
 
 #checking mfc features
-SPECTPATH = 'workingfiles/features_baseline/'
+SPECTPATH = 'workingfiles/features_high_temporal/20_10_120_norm/'
 LABELPATH = 'labels/'
 FILELIST = 'workingfiles/filelists/'
 
 RESULTPATH = 'trained_model/baseline/'
-SUBMISSIONFILE = 'predictions.csv'
+SUBMISSIONFILE = 'predictions_20_10_120_norm.csv'
 PREDICTIONPATH = 'prediction/'
 dataset = ['BirdVox-DCASE-20k.csv', 'ff1010bird.csv', 'warblrb10k.csv']
 
-logfile_name = RESULTPATH + 'logfile.log'
-checkpoint_model_name = RESULTPATH + 'ckpt.h5'
-final_model_name = RESULTPATH + 'flmdl.h5'
+logfile_name = RESULTPATH + 'logfile_20_10_120_norm.log'
+checkpoint_model_name = RESULTPATH + 'ckpt_20_10_120_norm.h5'
+final_model_name = RESULTPATH + 'flmdl_20_10_120_norm.h5'
+final_weights_name = RESULTPATH + 'weights.h5'
 
-BATCH_SIZE = 32
-EPOCH_SIZE = 100
+BATCH_SIZE = 16
+EPOCH_SIZE = 60
 AUGMENT_SIZE = 1
 with_augmentation = False
 features='npy'
 model_operation = 'new'
 # model_operations : 'new', 'load', 'test'
-shape = (700, 80)
-expected_shape = (700, 80)
-input_cnn_shape = (700, 80, 1)
+shape = (1000, 120)
+expected_shape = (1000, 120)
+input_cnn_shape = (1000, 120, 1)
 spect = np.zeros(shape)
 label = np.zeros(1)
 # Normalization
@@ -579,6 +580,7 @@ if model_operation == 'new':
 
 elif model_operation == 'load' or model_operation == 'test':
     model = load_model(RESULTPATH + 'flmdl.h5')
+    model.load_weights(RESULTPATH + 'my_model_weights.h5', by_name=True)
 
 if model_operation == 'new' or model_operation == 'load':
     adam = keras.optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0)
@@ -607,6 +609,7 @@ if model_operation == 'new' or model_operation == 'load':
         verbose=True)
 
     model.save(final_model_name)
+    model.save_weights(final_weights_name)
     logger.info('Training done. The results are in :\n'+RESULTPATH)
 
 # generating prediction values for computing ROC_AUC score
