@@ -40,7 +40,7 @@ def main():
     plt.savefig(args.output_name + "_loss.png")
     plt.show()
 
-    #Plot Eval Accuracity
+    #Plot Val Accuracity
     plt.plot(epoch,val_acc)
     plt.xlabel('Epochs')
     plt.ylabel('Validation Accuracity')
@@ -48,12 +48,22 @@ def main():
     plt.savefig(args.output_name + "_val_acc.png")
     plt.show()
 
-    #Plot Loss
+    #Plot Val Loss
     plt.plot(epoch,val_loss)
     plt.xlabel('Epochs')
     plt.ylabel('Validation Loss')
     plt.grid(True)
     plt.savefig(args.output_name + "_val_loss.png")
+    plt.show()
+
+    #Plot Global Loss
+    plt.plot(epoch,loss)
+    plt.plot(epoch,val_loss)
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.legend(['Tr_loss', 'Val_loss'], loc='upper right')
+    plt.grid(True)
+    plt.savefig(args.output_name + "_global_loss.png")
     plt.show()
 
 

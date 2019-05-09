@@ -52,29 +52,30 @@ logger.info('---------------------------- Program ---------------------------')
 logger.info('Reading all parameters')
 
 #checking mfc features
-SPECTPATH = 'workingfiles/features_baseline/'
+SPECTPATH = 'workingfiles/features_high_temporal/20_10_180_norm/'
 LABELPATH = 'labels/'
 FILELIST = 'workingfiles/filelists/'
 
 RESULTPATH = 'trained_model/baseline/'
-SUBMISSIONFILE = 'predictions.csv'
+SUBMISSIONFILE = 'predictions_TF_WF.csv'
 PREDICTIONPATH = 'prediction/'
 dataset = ['BirdVox-DCASE-20k.csv', 'ff1010bird.csv', 'warblrb10k.csv']
 
-logfile_name = RESULTPATH + 'logfile.log'
-checkpoint_model_name = RESULTPATH + 'ckpt.h5'
-final_model_name = RESULTPATH + 'flmdl.h5'
+logfile_name = RESULTPATH + 'logfile_TF_WF.log'
+checkpoint_model_name = RESULTPATH + 'ckpt_TF_WF.h5'
+final_model_name = RESULTPATH + 'flmdl_TF_WF.h5'
+final_weights_name = RESULTPATH + 'weights_TF_WF.h5'
 
-BATCH_SIZE = 32
-EPOCH_SIZE = 100
+BATCH_SIZE = 16
+EPOCH_SIZE = 30
 AUGMENT_SIZE = 1
 with_augmentation = False
 features='npy'
 model_operation = 'new'
 # model_operations : 'new', 'load', 'test'
-shape = (700, 80)
-expected_shape = (700, 80)
-input_cnn_shape = (700, 80, 1)
+shape = (1000, 180)
+expected_shape = (1000, 180)
+input_cnn_shape = (1000, 180, 1)
 spect = np.zeros(shape)
 label = np.zeros(1)
 # Normalization
@@ -119,26 +120,20 @@ d_warblr = {k_VAL_FILE: 'val_W', k_TEST_FILE: 'test_W', k_TRAIN_FILE: 'train_W',
 d_freefield = {k_VAL_FILE: 'val_F', k_TEST_FILE: 'test_F', k_TRAIN_FILE: 'train_F',
                k_VAL_SIZE: 385.0, k_TEST_SIZE: 1153.0, k_TRAIN_SIZE: 6152.0,
                k_CLASS_WEIGHT: {0: 0.25, 1: 0.75}}
-d_fold1 = {k_VAL_FILE: 'test_BF', k_TEST_FILE: 'val_1', k_TRAIN_FILE: 'train_BF',
-           k_VAL_SIZE: 4153.0, k_TEST_SIZE: 8000.0, k_TRAIN_SIZE: 22152.0,
-           k_CLASS_WEIGHT: {0: 0.43, 1: 0.57}}
-d_fold2 = {k_VAL_FILE: 'test_WF', k_TEST_FILE: 'val_2', k_TRAIN_FILE: 'train_WF',
-           k_VAL_SIZE: 2353.0, k_TEST_SIZE: 20000.0, k_TRAIN_SIZE: 12552.0,
-           k_CLASS_WEIGHT: {0: 0.50, 1: 0.50}}
-d_fold3 = {k_VAL_FILE: 'test_BW', k_TEST_FILE: 'val_3', k_TRAIN_FILE: 'train_BW',
-           k_VAL_SIZE: 4200.0, k_TEST_SIZE: 7690.0, k_TRAIN_SIZE: 22400.0,
-           k_CLASS_WEIGHT: {0: 0.57, 1: 0.43}}
-d_all3 = {k_VAL_FILE: 'val_BWF', k_TEST_FILE:'test', k_TRAIN_FILE: 'train_BWF',
-           k_VAL_SIZE: 1785.0, k_TEST_SIZE: 12620.0, k_TRAIN_SIZE: 35960.0,
+d_fold1 = {k_VAL_FILE: 'val_WF', k_TEST_FILE: 'test_WF', k_TRAIN_FILE: 'train_WF',
+           k_VAL_SIZE: 785.0, k_TEST_SIZE: 2353.0, k_TRAIN_SIZE: 12552.0,
+           k_CLASS_WEIGHT: {0: 0.50, 1: 0.50}
+d_all3 = {k_VAL_FILE: 'val_BWF_short', k_TEST_FILE:'test', k_TRAIN_FILE: 'train_BWF_short',
+           k_VAL_SIZE: 1000.0, k_TEST_SIZE: 12620.0, k_TRAIN_SIZE: 16000.0,
            k_CLASS_WEIGHT: {0: 0.50, 1: 0.50}}
 d_test = {k_VAL_FILE: 'val_test', k_TEST_FILE:'test_test', k_TRAIN_FILE: 'train_test',
            k_VAL_SIZE: 20.0, k_TEST_SIZE: 20.0, k_TRAIN_SIZE: 45.0,
            k_CLASS_WEIGHT: {0: 0.50, 1: 0.50}}
 # Declare the training, validation, and testing sets here using the dictionaries defined above.
 # Set these variables to change the data set.
-training_set = d_birdVox
-validation_set = d_birdVox
-test_set = d_birdVox
+training_set = d_fold1
+validation_set = d_fold1
+test_set = d_fold1
 
 logger.info(f"Dataset -- Training: {training_set}, Validation:"
             "{validation_set}, Test: {test_set}")
@@ -578,7 +573,8 @@ if model_operation == 'new':
     model.add(Dense(1, activation='sigmoid'))
 
 elif model_operation == 'load' or model_operation == 'test':
-    model = load_model(RESULTPATH + 'flmdl.h5')
+    model = load_model(RESULTPATH + 'flmdl_TF_WF.h5')
+    model.load_weights(RESULTPATH + 'weights_TF_WF.h5', by_name=True)
 
 if model_operation == 'new' or model_operation == 'load':
     adam = keras.optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0)
@@ -607,6 +603,7 @@ if model_operation == 'new' or model_operation == 'load':
         verbose=True)
 
     model.save(final_model_name)
+    model.save_weights(final_weights_name)
     logger.info('Training done. The results are in :\n'+RESULTPATH)
 
 # generating prediction values for computing ROC_AUC score

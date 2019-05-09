@@ -35,15 +35,15 @@ def define_param(option):
     if option == 'baseline':
         return dic
     elif option == 'temporal':
-        dic['WIN_t'] = 0.012
-        dic['HOP_t'] = 0.006
-        dic['expected_len'] = 1669
+        dic['WIN_t'] = 0.030
+        dic['HOP_t'] = 0.010
+        dic['expected_len'] = 1000
         return dic
     elif option == 'frequential':
-        dic['WIN_t'] = 0.032
-        dic['HOP_t'] = 0.016
-        dic['N_MEL'] = 160
-        dic['expected_len'] = 624
+        dic['WIN_t'] = 0.020
+        dic['HOP_t'] = 0.010
+        dic['N_MEL'] = 180
+        dic['expected_len'] = 1000
         return dic
 
 
@@ -165,5 +165,5 @@ if __name__ == '__main__':
         # TODO: Complete
         save_spectogram(features, args.output_file, wave)
 
-    print('Max Value: {max_value}')
-    print('Min Value: {min_value}')
+    print('Max Value: {}'.format(max_value))
+    print('Min Value: {}'.format(min_value))

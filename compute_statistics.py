@@ -19,7 +19,6 @@ def main():
     test_reader = csv.DictReader(testfile)
 
     with open(args.input_file, 'r') as f:
-        import pudb ; pudb.set_trace()
         reader = csv.DictReader(f)
         with open(args.output_file, 'w') as f:
             writer = csv.DictWriter(f, fieldnames = HEADER)
