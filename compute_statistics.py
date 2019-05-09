@@ -7,10 +7,12 @@ HEADER = ['itemid',
           'hasbird',
           'result'
           ]
+# Parse the result of the test and indicate the Test accuracy
+# searching the original labels and saving the comparation in a file
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('input_file', help='Path from file to parser')
+    parser.add_argument('input_file', help='Path from the prediction result')
     parser.add_argument('test_file', help='Path from Labels file')
     parser.add_argument('output_file', help='Path to save the parsed file')
     args = parser.parse_args()

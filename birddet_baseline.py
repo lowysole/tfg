@@ -1,8 +1,3 @@
-# DCASE 2018 - Bird Audio Detection challenge (Task 3)
-
-# This code is a basic implementation of bird audio detector
-#(based on baseline code's architecture)
-
 import h5py
 import csv
 import numpy as np
@@ -51,7 +46,6 @@ logger.info('---------------------------- Program ---------------------------')
 ################################################
 logger.info('Reading all parameters')
 
-#checking mfc features
 SPECTPATH = 'workingfiles/features_high_temporal/20_10_180_norm/'
 LABELPATH = 'labels/'
 FILELIST = 'workingfiles/filelists/'
@@ -70,6 +64,7 @@ BATCH_SIZE = 16
 EPOCH_SIZE = 30
 AUGMENT_SIZE = 1
 with_augmentation = False
+# features type : 'npy', 'mfc', 'h5'
 features='npy'
 model_operation = 'new'
 # model_operations : 'new', 'load', 'test'
@@ -99,9 +94,6 @@ csvLogger = CSVLogger(logfile_name, separator=',', append=False)
 ################################################
 logger.info('Data set selection')
 # Parameters in this section can be adjusted to select different data sets to train, test, and validate on.
-
-# Keys by which we will access properties of a data set. The values assigned here are ultimately meaningless.
-# The 'k' prefix on these declarations signify that they will be used as keys in a dictionary.
 k_VAL_FILE = 'validation_file_path'
 k_TEST_FILE = 'test_file_path'
 k_TRAIN_FILE = 'train_file_path'
@@ -129,7 +121,6 @@ d_all3 = {k_VAL_FILE: 'val_BWF_short', k_TEST_FILE:'test', k_TRAIN_FILE: 'train_
 d_test = {k_VAL_FILE: 'val_test', k_TEST_FILE:'test_test', k_TRAIN_FILE: 'train_test',
            k_VAL_SIZE: 20.0, k_TEST_SIZE: 20.0, k_TRAIN_SIZE: 45.0,
            k_CLASS_WEIGHT: {0: 0.50, 1: 0.50}}
-# Declare the training, validation, and testing sets here using the dictionaries defined above.
 # Set these variables to change the data set.
 training_set = d_fold1
 validation_set = d_fold1
@@ -166,8 +157,7 @@ def data_generator(filelistpath, batch_size=16, shuffle=False):
     if shuffle==True:
         random.shuffle(filenames)
 
-    # dataset = ['BirdVox-DCASE-20k.csv', 'ff1010bird.csv', 'warblrb10k.csv']
-
+    # read labels and save in a dict
     labels_dict = {}
     for n in range(len(dataset)):
         labels_list = csv.reader(open(LABELPATH + dataset[n], 'r'))
@@ -192,12 +182,12 @@ def data_generator(filelistpath, batch_size=16, shuffle=False):
             aug_spect_batch = np.zeros([batch_size, spect.shape[0], spect.shape[1], 1])
             aug_label_batch = np.zeros([batch_size, 1])
 
+        # load features with the select format
         if features=='h5':
             hf = h5py.File(SPECTPATH + file_id + '.h5', 'r')
             imagedata = hf.get('features')
             imagedata = np.array(imagedata)
             hf.close()
-            # normalizing intensity values of spectrogram from [-15.0966 to 2.25745] to [0 to 1] range
             imagedata = (imagedata + 15.0966)/(15.0966 + 2.25745)
         elif features == 'npy':
             imagedata = np.load(SPECTPATH + file_id + '.npy')
@@ -254,6 +244,7 @@ def data_generator(filelistpath, batch_size=16, shuffle=False):
         aug_label_batch[batch_index, :] = label_batch[0, :]
         batch_index += 1
 
+        # create the batch with the features and the labels
         for n in range(AUGMENT_SIZE-1):
             aug_spect_batch[batch_index, :, :, :], aug_label_batch[batch_index, :] = gen_img.next()
             batch_index += 1
@@ -278,8 +269,9 @@ def dataval_generator(filelistpath, batch_size=32, shuffle=False):
     filenames = filelist.readlines()
     filelist.close()
 
-    #dataset = (['Chernobyl.csv', 'PolandNFC.csv', 'warblrb10k-eval.csv'])
 
+    # read labels and save in a dict
+    labels_dict = {}
     labels_dict = {}
     for n in range(len(dataset)):
         labels_list = csv.reader(open(LABELPATH + dataset[n], 'r'))
@@ -302,17 +294,12 @@ def dataval_generator(filelistpath, batch_size=32, shuffle=False):
             spect_batch = np.zeros([batch_size, spect.shape[0], spect.shape[1], 1])
             label_batch = np.zeros([batch_size, 1])
 
+        # load features with the select format
         if features == 'h5':
-            #file_prefix = file_id[:file_id.rfind("/")+1]
-            #file_suffix = file_id[file_id.rfind("/")+1:]
-            #hf = h5py.File(SPECTPATH + file_prefix + 'enhanced_'+ file_suffix + '.h5')
             hf = h5py.File(SPECTPATH + file_id + '.h5', 'r')#[:-4]for evaluation dataset
             imagedata = hf.get('features')
             imagedata = np.array(imagedata)
             hf.close()
-
-            # normalizing intensity values of spectrogram from [-15.0966 to 2.25745] to [0 to 1] range
-            #TODO:Normalize
             imagedata = (imagedata + 15.0966)/(15.0966 + 2.25745)
         elif features == 'npy':
             imagedata = np.load(SPECTPATH + file_id + '.npy')
@@ -320,9 +307,6 @@ def dataval_generator(filelistpath, batch_size=32, shuffle=False):
                 imagedata = (imagedata - min_value)/(max_value - min_value)
         elif features == 'mfc':
             htk_reader = HTKFile()
-            #file_prefix = file_id[:file_id.rfind("/")+1]
-            #file_suffix = file_id[file_id.rfind("/")+1:]
-            #htk_reader.load(SPECTPATH + file_prefix + 'enhanced_'+ file_suffix[:-4] + '.mfc')
             htk_reader.load(SPECTPATH + file_id[:-4] + '.mfc')
             imagedata = np.array(htk_reader.data)
             imagedata = imagedata/17.0
@@ -367,6 +351,7 @@ def dataval_generator(filelistpath, batch_size=32, shuffle=False):
 
         batch_index += 1
 
+        # create the batch with the features and the labels
         if batch_index >= batch_size:
             batch_index = 0
             inputs = [spect_batch]
@@ -381,8 +366,8 @@ def datatest_generator(filelistpath, batch_size=32, shuffle=False):
     filenames = filelist.readlines()
     filelist.close()
 
-    # dataset = (['Chernobyl.csv', 'PolandNFC.csv', 'warblrb10k-eval.csv'])
-
+    # read labels and save in a dict
+    labels_dict = {}
     labels_dict = {}
     for n in range(len(dataset)):
         labels_list = csv.reader(open(LABELPATH + dataset[n], 'r'))
@@ -405,16 +390,12 @@ def datatest_generator(filelistpath, batch_size=32, shuffle=False):
             spect_batch = np.zeros([batch_size, spect.shape[0], spect.shape[1], 1])
             label_batch = np.zeros([batch_size, 1])
 
+        # load features with the select format
         if features == 'h5':
-            #file_prefix = file_id[:file_id.rfind("/")+1]
-            #file_suffix = file_id[file_id.rfind("/")+1:]
-            #hf = h5py.File(SPECTPATH + file_prefix + 'enhanced_'+ file_suffix + '.h5')
             hf = h5py.File(SPECTPATH + file_id + '.h5', 'r')#[:-4]for evaluation dataset
             imagedata = hf.get('features')
             imagedata = np.array(imagedata)
             hf.close()
-
-            # normalizing intensity values of spectrogram from [-15.0966 to 2.25745] to [0 to 1] range
             imagedata = (imagedata + 15.0966)/(15.0966 + 2.25745)
         elif features == 'npy':
             imagedata = np.load(SPECTPATH + file_id + '.npy')
@@ -422,9 +403,6 @@ def datatest_generator(filelistpath, batch_size=32, shuffle=False):
                 imagedata = (imagedata - min_value)/(max_value - min_value)
         elif features == 'mfc':
             htk_reader = HTKFile()
-            #file_prefix = file_id[:file_id.rfind("/")+1]
-            #file_suffix = file_id[file_id.rfind("/")+1:]
-            #htk_reader.load(SPECTPATH + file_prefix + 'enhanced_'+ file_suffix[:-4] + '.mfc')
             htk_reader.load(SPECTPATH + file_id[:-8] + '.mfc')
             imagedata = np.array(htk_reader.data)
             imagedata = imagedata/17.0
@@ -468,45 +446,11 @@ def datatest_generator(filelistpath, batch_size=32, shuffle=False):
 
         batch_index += 1
 
+        # create the batch with the features
         if batch_index >= batch_size:
             batch_index = 0
             inputs = [spect_batch]
             yield inputs
-################################################
-#
-#   ROC Label Generation
-#
-################################################
-
-def testdata(filelistpath, test_size):
-    image_index = -1
-
-    filelist = open(filelistpath, 'r')
-    filenames = filelist.readlines()
-    filelist.close()
-
-    #dataset = (['Chernobyl.csv', 'PolandNFC.csv', 'warblrb10k-eval.csv'])
-
-    labels_dict = {}
-    for n in range(len(dataset)):
-        labels_list = csv.reader(open(LABELPATH + dataset[n], 'r'))
-        next(labels_list)
-        for k, r, v in labels_list:
-            labels_dict[r + '/' + k + '.wav'] = v
-
-    label_batch = np.zeros([int(test_size), 1])
-
-    for m in range(len(filenames)):
-        image_index = (image_index + 1) % len(filenames)
-
-        file_id = filenames[image_index].rstrip()
-
-        label_batch[image_index, :] = labels_dict[file_id]
-
-        outputs = [label_batch]
-
-    return outputs
-
 ################################################
 
 logger.info('Genereting data for Tranning')
@@ -536,10 +480,6 @@ datagen = ImageDataGenerator(
 if model_operation == 'new':
     logger.info('Creating new Sequential Mode')
     model = Sequential()
-    # augmentation generator
-    # code from baseline : "augment:Rotation|augment:Shift(low=-1,high=1,axis=3)"
-    # keras augmentation:
-    #preprocessing_function
 
     # convolution layers
     model.add(Conv2D(16, (3, 3), padding='valid', input_shape=input_cnn_shape, ))  # low: try different kernel_initializer
@@ -572,10 +512,12 @@ if model_operation == 'new':
     model.add(Dropout(0.5))  # experiment with removing this dropout
     model.add(Dense(1, activation='sigmoid'))
 
+# load model and weights from other trainings
 elif model_operation == 'load' or model_operation == 'test':
     model = load_model(RESULTPATH + 'flmdl_TF_WF.h5')
     model.load_weights(RESULTPATH + 'weights_TF_WF.h5', by_name=True)
 
+# define the optimizer and compile the model
 if model_operation == 'new' or model_operation == 'load':
     adam = keras.optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0)
     model.compile(optimizer=adam, loss='binary_crossentropy', metrics=['acc'])
@@ -590,6 +532,7 @@ my_steps = np.floor(TRAIN_SIZE*AUGMENT_SIZE / BATCH_SIZE)
 my_val_steps = np.floor(VAL_SIZE / BATCH_SIZE)
 my_test_steps = np.ceil(TEST_SIZE / BATCH_SIZE)
 
+# fit the model and start training
 if model_operation == 'new' or model_operation == 'load':
     logger.info('Model fitting')
     history = model.fit_generator(
@@ -606,8 +549,7 @@ if model_operation == 'new' or model_operation == 'load':
     model.save_weights(final_weights_name)
     logger.info('Training done. The results are in :\n'+RESULTPATH)
 
-# generating prediction values for computing ROC_AUC score
-# whether model_operation is 'new', 'load' or 'test'
+# Generate the predicitons in the test step
 logger.info('Genereting Predictions')
 pred_generator = datatest_generator(test_filelist, BATCH_SIZE, False)
 y_pred = model.predict_generator(

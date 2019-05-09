@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 #           }
 # --------------------------- #
 
-
+# Parameters for the transformation
 def define_param(option):
     dic = {'FS': 22050,
            'N_FFT': 4096,
