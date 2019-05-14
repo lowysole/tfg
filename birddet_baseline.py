@@ -51,14 +51,14 @@ LABELPATH = 'labels/'
 FILELIST = 'workingfiles/filelists/'
 
 RESULTPATH = 'trained_model/baseline/'
-SUBMISSIONFILE = 'predictions_TF_WF.csv'
+SUBMISSIONFILE = 'predictions_TL_WF_B.csv'
 PREDICTIONPATH = 'prediction/'
 dataset = ['BirdVox-DCASE-20k.csv', 'ff1010bird.csv', 'warblrb10k.csv']
 
-logfile_name = RESULTPATH + 'logfile_TF_WF.log'
-checkpoint_model_name = RESULTPATH + 'ckpt_TF_WF.h5'
-final_model_name = RESULTPATH + 'flmdl_TF_WF.h5'
-final_weights_name = RESULTPATH + 'weights_TF_WF.h5'
+logfile_name = RESULTPATH + 'logfile_TL_WF_B.log'
+checkpoint_model_name = RESULTPATH + 'ckpt_TL_WF_B.h5'
+final_model_name = RESULTPATH + 'flmdl_TL_WF_B.h5'
+final_weights_name = RESULTPATH + 'weights_TL_WF_B.h5'
 
 BATCH_SIZE = 16
 EPOCH_SIZE = 30
@@ -66,7 +66,7 @@ AUGMENT_SIZE = 1
 with_augmentation = False
 # features type : 'npy', 'mfc', 'h5'
 features='npy'
-model_operation = 'new'
+model_operation = 'load'
 # model_operations : 'new', 'load', 'test'
 shape = (1000, 180)
 expected_shape = (1000, 180)
@@ -114,7 +114,7 @@ d_freefield = {k_VAL_FILE: 'val_F', k_TEST_FILE: 'test_F', k_TRAIN_FILE: 'train_
                k_CLASS_WEIGHT: {0: 0.25, 1: 0.75}}
 d_fold1 = {k_VAL_FILE: 'val_WF', k_TEST_FILE: 'test_WF', k_TRAIN_FILE: 'train_WF',
            k_VAL_SIZE: 785.0, k_TEST_SIZE: 2353.0, k_TRAIN_SIZE: 12552.0,
-           k_CLASS_WEIGHT: {0: 0.50, 1: 0.50}
+           k_CLASS_WEIGHT: {0: 0.50, 1: 0.50}}
 d_all3 = {k_VAL_FILE: 'val_BWF_short', k_TEST_FILE:'test', k_TRAIN_FILE: 'train_BWF_short',
            k_VAL_SIZE: 1000.0, k_TEST_SIZE: 12620.0, k_TRAIN_SIZE: 16000.0,
            k_CLASS_WEIGHT: {0: 0.50, 1: 0.50}}
@@ -122,9 +122,9 @@ d_test = {k_VAL_FILE: 'val_test', k_TEST_FILE:'test_test', k_TRAIN_FILE: 'train_
            k_VAL_SIZE: 20.0, k_TEST_SIZE: 20.0, k_TRAIN_SIZE: 45.0,
            k_CLASS_WEIGHT: {0: 0.50, 1: 0.50}}
 # Set these variables to change the data set.
-training_set = d_fold1
-validation_set = d_fold1
-test_set = d_fold1
+training_set = d_birdVox
+validation_set = d_birdVox
+test_set = d_birdVox
 
 logger.info(f"Dataset -- Training: {training_set}, Validation:"
             "{validation_set}, Test: {test_set}")
